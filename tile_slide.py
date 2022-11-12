@@ -1,4 +1,4 @@
-#minden ok, szebb keverést
+#minden ok
 """
 Tile Slide game by Szemán Artúr
 Ver: 0.0  :)
@@ -18,14 +18,15 @@ from flet import (Container, Draggable, DragTarget, Page, Row, Text, alignment,
 import random
 import time
 
-GAME_SIZE = (5, 5)     #count of tiles (horizontal, vertical)
+GAME_SIZE = (4, 4)     #count of tiles (horizontal, vertical)
 TILE_SIZE = (50, 50)   #size of tiles (horizontal, vertical)
 DRAG_GROUP = "TILESLIDE"
 
 class Tile():
-    def __init__(self, orig_x, orig_y, is_tile, drag_cont) -> None:
+    def __init__(self, orig_x, orig_y, ind, is_tile, drag_cont) -> None:
         self.orig_coord = (orig_x, orig_y)
         self.act_coord = self.orig_coord
+        self.ind = ind
         self.is_tile = is_tile #True: tile, False: the hole
         self.drag_cont = drag_cont
         drag_cont.data = self
@@ -42,10 +43,9 @@ def main(page: Page):
         """
         Is everything in place?
         """
-        for r, tiles_row in enumerate(tiles):
-            for c, t in enumerate(tiles_row):
-                if t.act_coord != t.orig_coord:
-                    return False
+        for t in tiles:
+            if t.act_coord != t.orig_coord:
+                return False
 
         return True        
 
@@ -54,12 +54,17 @@ def main(page: Page):
         """
         Which tile has the container. For container onclick. For now not used     
         """    
-        for r, tiles_row in enumerate(tiles):
-            for c, t in enumerate(tiles_row):
-                if t.drag_cont.content == container:
-                    return r, c, t
+        for i, t in enumerate(tiles):
+            if t.drag_cont.content == container:
+                return i, t
 
         return False        
+
+    def coord2ind(r, c):
+        return r * GAME_SIZE[1] + c
+
+    def ind2coord(ind):
+        return divmod(ind, GAME_SIZE[0])
 
     def swap(src_tile: Tile, trg_tile: Tile):
         """
@@ -81,9 +86,10 @@ def main(page: Page):
 
             src_row.controls[src_tile.act_coord[0]] = trg_control    
             trg_row.controls[trg_tile.act_coord[0]] = src_control
-            tiles[ src_tile.act_coord[1] ] [src_tile.act_coord[0]] = trg_tile
-            tiles[ trg_tile.act_coord[1] ] [trg_tile.act_coord[0]] = src_tile
+            tiles[ src_tile.ind ] = trg_tile
+            tiles[ trg_tile.ind ] = src_tile
             src_tile.act_coord, trg_tile.act_coord = trg_tile.act_coord, src_tile.act_coord
+            src_tile.ind, trg_tile.ind = trg_tile.ind, src_tile.ind
 
             page.update()
 
@@ -138,16 +144,14 @@ def main(page: Page):
         cnt = 0
         for r in range(GAME_SIZE[1]):
             row = Row(spacing=0)
-            tiles_row = []
             for c in range(GAME_SIZE[0]):
                 cnt += 1   
                 is_tile = c < GAME_SIZE[0] - 1 or r < GAME_SIZE[1] - 1       
                 row.controls.append(
                     drag_cont := game_item(is_tile, str(cnt))
                 )
-                tiles_row.append( Tile(c, r, is_tile, drag_cont) )
+                tiles.append( Tile(c, r, len(tiles), is_tile, drag_cont) )
             page.add(row)
-            tiles.append(tiles_row)    
             pagerows.append(row)
 
 
@@ -161,17 +165,18 @@ def main(page: Page):
 
     def btn_mix_click(e):
         def get_hole():
-            for r, tiles_row in enumerate(tiles):
-                for c, tile in enumerate(tiles_row):
-                    if not tile.is_tile:
-                        return r, c, tiles[r][c]
+            for i, t in enumerate(tiles):
+                if not t.is_tile:
+                    return i, t
             return False
 
         btn_mix.disabled = True
         try:
-            r,c, _ = get_hole()                
+            _, hole = get_hole()               
+            c, r = hole.act_coord
 
             for i in range(10):
+                print(f"hole.act_coord: {r}, {c}")
                 while True:
                     direction = random.choice("lrud")
                     r1, c1 = r, c
@@ -186,11 +191,12 @@ def main(page: Page):
                         r1 += 1
                         c1 = c
 
-                    if 0 <= c1 < len( tiles[0] ) and  0 <= r1 < len(tiles):
+                    if 0 <= c1 < GAME_SIZE[0] and  0 <= r1 < GAME_SIZE[1]:
                         break
 
-                swap( tiles[r][c], tiles[r1][c1])
+                swap( tiles[coord2ind(r, c)], tiles[ coord2ind(r1, c1)])
                 r, c = r1, c1
+                print(f"régi: {r}, {c}  új: {r1}, {c1}")
 
                 time.sleep(0.1)   
         finally:
