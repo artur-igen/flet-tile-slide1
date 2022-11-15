@@ -12,14 +12,20 @@ Where to go:
 - POSSIBILITY OF NEW GAME!! :D
 - click event called when dragging begins (on_up event or mouse event?)
 """
-import flet
-from flet import (Container, Draggable, DragTarget, Page, Row, Text, alignment, 
-    colors, border, ContainerTapEvent, ElevatedButton, AlertDialog)
 import random
 import time
 
-GAME_SIZE = (4, 4)     #count of tiles (horizontal, vertical)
-TILE_SIZE = (50, 50)   #size of tiles (horizontal, vertical)
+import flet
+from flet import (AlertDialog, Container, ContainerTapEvent, Draggable,
+                  DragTarget, ElevatedButton, Page, Row, Text, alignment,
+                  border, colors)
+
+#GAME_SIZE = (4, 4)     #count of tiles (horizontal, vertical)
+GAME_WIDTH = 4
+GAME_HEIGHT = 4
+#TILE_SIZE = (50, 50)   #size of tiles (horizontal, vertical)
+TILE_WIDTH = 50
+TILE_HEIGHT = 50
 DRAG_GROUP = "TILESLIDE"
 
 class Tile():
@@ -61,10 +67,10 @@ def main(page: Page):
         return False        
 
     def coord2ind(r, c):
-        return r * GAME_SIZE[1] + c
+        return r * GAME_WIDTH + c
 
     def ind2coord(ind):
-        return divmod(ind, GAME_SIZE[0])
+        return divmod(ind, GAME_WIDTH)
 
     def swap(src_tile: Tile, trg_tile: Tile):
         """
@@ -124,8 +130,8 @@ def main(page: Page):
         ret = {True: Draggable, False: DragTarget } [is_tile] (
                         group = DRAG_GROUP,
                         content = Container(
-                            width=TILE_SIZE[0],
-                            height=TILE_SIZE[0],
+                            width=TILE_WIDTH,
+                            height=TILE_HEIGHT,
                             bgcolor=bgcolor,
                             border=border.all(width=1, color="black"),
                             content=Text(content, size=20),
@@ -142,11 +148,11 @@ def main(page: Page):
 
     def game_init():
         cnt = 0
-        for r in range(GAME_SIZE[1]):
+        for r in range(GAME_HEIGHT):
             row = Row(spacing=0)
-            for c in range(GAME_SIZE[0]):
+            for c in range(GAME_WIDTH):
                 cnt += 1   
-                is_tile = c < GAME_SIZE[0] - 1 or r < GAME_SIZE[1] - 1       
+                is_tile = c < GAME_WIDTH - 1 or r < GAME_HEIGHT - 1       
                 row.controls.append(
                     drag_cont := game_item(is_tile, str(cnt))
                 )
@@ -191,7 +197,7 @@ def main(page: Page):
                         r1 += 1
                         c1 = c
 
-                    if 0 <= c1 < GAME_SIZE[0] and  0 <= r1 < GAME_SIZE[1]:
+                    if 0 <= c1 < GAME_WIDTH and  0 <= r1 < GAME_HEIGHT:
                         break
 
                 swap( tiles[coord2ind(r, c)], tiles[ coord2ind(r1, c1)])
@@ -218,4 +224,4 @@ def main(page: Page):
 tiles = []
 pagerows = [] #todo: getting the parent row via its control
 
-flet.app(target=main)
+flet.app(target=main) #, view=flet.WEB_BROWSER)
